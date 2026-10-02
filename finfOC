@@ -1,0 +1,35 @@
+import os, sys, json, platform, socket, getpass, shutil, datetime
+
+def detect_os():
+    s = platform.system()
+    family = {"Linux": "Linux", "Darwin": "macOS", "Windows": "Windows"}.get(s, "Unknown")
+    return {"family": family, "release": platform.release(),
+            "arch": platform.machine(), "python": platform.python_version()}
+
+def collect():
+    d = {"cwd_disk_free_gb": None}
+    try:
+        d["cwd_disk_free_gb"] = round(shutil.disk_usage(os.getcwd()).free / 1024**3, 2)
+    except Exception:
+        pass
+    return {
+        "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "os": detect_os(),
+        "hardware": {"cpu_count": os.cpu_count()},
+        "environment": {"hostname": socket.gethostname(),
+                        "username": getpass.getuser(),
+                        "home_dir": os.path.expanduser("~"),
+                        "cwd": os.getcwd()},
+        "filesystem": d,
+        "locale": {"encoding": sys.getfilesystemencoding(),
+                   "locale": os.environ.get("LANG") or os.environ.get("LC_ALL")},
+    }
+
+def main():
+    report = collect()
+    with open("os_report.json", "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    print(f"[+] OS: {report['os']['family']} | report -> os_report.json")
+
+if __name__ == "__main__":
+    main()
